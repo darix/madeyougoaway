@@ -1,8 +1,8 @@
-# A quick formula to get forgejo and forgejo-runner up and running
+# A very thin wrapper to saltify nftables
 
 ## What can the formula do?
 
-Configure forgejo and forgejo-runner
+This is a wrapper around [nftables-service][0]
 
 ## installation
 
@@ -41,3 +41,5 @@ In your salt machine configuration include `madeyougoaway.forgejo` and/or
 ## License
 
 [AGPL-3.0-only](https://spdx.org/licenses/AGPL-3.0-only.html)
+
+[0]: https://build.opensuse.org/package/show/home:darix:apps/nftables-service
