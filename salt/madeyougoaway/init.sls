@@ -40,11 +40,20 @@ def _render_sets(item_data, indent=0):
   lines = []
   for set_name, set_data in item_data.items():
     lines.append(f"set {set_name} {{")
-    lines.append(f"  type {set_data['type']};")
+    if 'type' in set_data:
+      lines.append(f"  type {set_data['type']};")
+    if 'typeof' in set_data:
+      lines.append(f"  typeof {set_data['typeof']}")
     lines.append(f"  flags {set_data['flags']};")
     lines.append( "  elements {")
     for element in set_data.get('elements', []):
       lines.append(f"    {element},")
+    if 'element_mine_match' in set_data and 'element_mine_function' in set_data:
+      tgttype = set_data.get('element_mine_tgttype', 'compound')
+      for minion_id, mine_data in __salt__['mine.get'](set_data['element_mine_match'], set_data['element_mine_function'],tgt_type=tgttype).items():
+        lines.append(f"    # {minion_id}")
+        for address in mine_data:
+          lines.append(f"    {address},")
     lines.append( "  }")
     lines.append( "}")
   return _indent_lines(lines, indent)

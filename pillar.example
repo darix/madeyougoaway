@@ -120,3 +120,23 @@ nftables:
           elements:
             - 49360-49361
             - 52459
+
+        # you need to ensure that the mine function only returns either IPv4 or IPv6
+        patroni_v4:
+          typeof: ip4 saddr
+          flags:  interval
+          elements:
+           - 127.0.0.1
+          element_mine_match:    'I@roles:patroni'
+          element_mine_function: internal_addresses_v4
+          # this is the default tgttype
+          # element_mine_tgttype:  compound
+        patroni_v6:
+          typeof: ip6 saddr
+          flags:  interval
+          elements:
+           - ::1
+          element_mine_match:    patroni
+          element_mine_function: internal_addresses_v6
+          # if you have a nodegroup which addreses all the patroni nodes, we can also use that
+          element_mine_tgttype:  nodegroup
