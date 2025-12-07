@@ -35,8 +35,6 @@ systemctl restart saltmaster
 ## How to use
 
 Follow pillar.example for your pillar settings.
-In your salt machine configuration include `madeyougoaway.forgejo` and/or
-`madeyougoaway.forgejo-runner`.
 
 ## License
 
