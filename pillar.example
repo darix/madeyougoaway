@@ -17,3 +17,76 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+nftables:
+  # touches /var/lib/nftables/auto.conf so that the service saves the current state at th end
+  auto_save: False
+
+  config:
+    tables:
+      inet:
+        filter:
+          includes:
+            - hosts_and_ports
+          chains:
+            input:
+              type: filter hook input priority 0
+              policy: drop
+              rules:
+                - ct state established,related accept
+                - ct state invalid drop
+                - iif lo accept
+                # Allow all ICMP and IGMP traffic, but enforce a rate limit
+                # to help prevent some types of flood attacks.
+                - ip protocol icmp limit rate 4/second accept
+                - ip6 nexthdr ipv6-icmp limit rate 4/second accept
+                - ip protocol igmp limit rate 4/second accept
+                - iif intern counter jump services_intern
+                - iif extern counter jump services_extern
+                - counter log prefix "[nftables] forward reject "  reject;
+            outgoing:
+              type: filter hook output priority 0
+              policy: accept
+            forward:
+                type: filter hook forward priority 0
+                policy: drop;
+                rules:
+                  - ct state established,related accept
+                  # Drop invalid packets.
+                  - ct state invalid drop
+            services_extern:
+              rules:
+                - udp dport @wireguard_udp_ports counter accept
+            services_intern:
+              rules:
+                - tcp dport @salt_tcp_ports log prefix " [nftables] salt access intern " accept
+      ip:
+        nat:
+          includes:
+            - hosts_and_ports
+          chains:
+            postrouting:
+              type: nat hook postrouting priority 100
+              policy: accept
+      ip6:
+        nat:
+          includes:
+            - hosts_and_ports
+          chains:
+            postrouting:
+              type: nat hook postrouting priority 100
+              policy: accept
+  includes:
+    hosts_and_ports:
+      sets:
+        salt_tcp_ports:
+          type: inet_service
+          flags: interval
+          elements:
+            - 4505
+            - 4506
+        wireguard_udp_ports:
+          type: inet_service
+          flags: interval
+          elements:
+            - 49360-49361
+            - 52459
