@@ -66,8 +66,13 @@ def _render_chains(item_data, indent=0):
       lines.append(f"  type {chain_data['type']};")
     if 'policy' in chain_data:
       lines.append(f"  policy {chain_data['policy']};")
-    for rule in chain_data.get('rules', []):
-      lines.append(f"  {rule};")
+    rules = chain_data.get('rules', [])
+    if isinstance(rules, list):
+      lines.extend(_indent_lines([f"{rule};" for rule in rules], 1))
+    elif isinstance(rules, str):
+      lines.append(rules)
+    else:
+      raise SaltConfigurationError(f"Unhandled type {type(rules)} for rule list")
     lines.append(   "}")
   return _indent_lines(lines, indent)
 
