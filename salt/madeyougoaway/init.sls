@@ -196,8 +196,8 @@ def run():
     }
 
     config["nftables_service"] = {
-      'service.running': [
-        {'name': nftables_service},
+      f'service.{nftables_pillar.get("service_state", "running")}': [
+        {'name': nftables_full_service},
         {'enable': True},
       ]
     }
