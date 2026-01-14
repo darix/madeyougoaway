@@ -18,7 +18,7 @@
 #
 
 nftables:
-  # touches /var/lib/nftables/auto.conf so that the service saves the current state at th end
+  # touches /var/lib/nftables/auto.conf so that the service saves the current state at the end
   auto_save: False
 
   # optional early config. This ruleset will be started before any network is up
