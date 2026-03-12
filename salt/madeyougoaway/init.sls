@@ -132,7 +132,7 @@ def run():
       ]
     }
 
-    if nftables_pillar.get('enabled', False):
+    if nftables_pillar.get('auto_save', False):
       config['nftables_prepare_autosave_file'] = {
         'file.managed': [
           {'name':   nftables_service_auto_config },
