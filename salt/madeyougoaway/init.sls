@@ -44,8 +44,9 @@ def _render_sets(item_data, indent=0):
       lines.append(f"  type {set_data['type']};")
     if 'typeof' in set_data:
       lines.append(f"  typeof {set_data['typeof']}")
-    lines.append(f"  flags {set_data['flags']};")
-    lines.append( "  elements {")
+    if 'flags' in set_data:
+      lines.append(f"  flags {set_data['flags']};")
+    lines.append( "  elements = {")
     for element in set_data.get('elements', []):
       lines.append(f"    {element},")
     if 'element_mine_match' in set_data and 'element_mine_function' in set_data:
@@ -68,7 +69,7 @@ def _render_chains(item_data, indent=0):
       lines.append(f"  policy {chain_data['policy']};")
     rules = chain_data.get('rules', [])
     if isinstance(rules, list):
-      lines.extend(_indent_lines([f"{rule};" for rule in rules], 1))
+      lines.extend(_indent_lines([f"{rule}" for rule in rules], 1))
     elif isinstance(rules, str):
       lines.append(rules)
     else:
@@ -91,7 +92,7 @@ def _render_tables(item_data, indent=0):
           case 'chains':
             lines.extend(_render_chains(sub_item_data, sub_indent))
           case _:
-            raise SaltConfiguration(f"No idea how to handle item type {item_type}")
+            raise SaltConfigurationError(f"No idea how to handle item type {item_type}")
       lines.append( "}")
   return _indent_lines(lines, indent)
 
@@ -153,23 +154,25 @@ def run():
       ]
     }
 
-    includes_deps_in = ["nftables_config"]
+    includes_deps_in = ["nftables_config", "nftables_service"]
     if 'early_config' in nftables_pillar:
       includes_deps_in.append("nftables_early_config")
+      includes_deps_in.append("nftables_early_service")
 
     for include_section, include_data in nftables_pillar.get('includes', {}).items():
-      config["nftables_early_config"] = {
+      config[f"nftables_include_{include_section}"] = {
         'file.managed': [
           {'name': _includes_path(include_section) },
           {'user':  'root'},
           {'group': 'root'},
           {'mode':  '0644'},
           {'require': ["nftables_includes_dir"]},
+          {'watch_in': includes_deps_in},
           {'require_in': includes_deps_in},
           {'contents': _generate_content(pillar_path=f'nftables:includes:{include_section}')},
         ]
       }
-
+    default_header_content = ['#!/usr/sbin/nft -f', 'flush ruleset']
     if 'early_config' in nftables_pillar:
       config["nftables_early_config"] = {
         'file.managed': [
@@ -178,13 +181,14 @@ def run():
           {'group': 'root'},
           {'mode':  '0644'},
           {'require_in': ['nftables_early_service']},
-          {'contents': _generate_content(pillar_path='nftables:early_config', header_content = ['#!/usr/sbin/nft -f'])},
+          {'contents': _generate_content(pillar_path='nftables:early_config', header_content = default_header_content)},
         ]
       }
 
       config["nftables_early_service"] = {
         'service.enabled': [
           {'name': nftables_early_service},
+          {'reload': True},
           {'enable': True},
         ]
       }
@@ -196,13 +200,15 @@ def run():
         {'group': 'root'},
         {'mode':  '0644'},
         {'require_in': ['nftables_service']},
-        {'contents': _generate_content(pillar_path='nftables:config', header_content = ['#!/usr/sbin/nft -f'])},
+        {'watch_in': ["nftables_service"]},
+        {'contents': _generate_content(pillar_path='nftables:config', header_content = default_header_content)},
       ]
     }
 
     config["nftables_service"] = {
       f'service.{nftables_pillar.get("service_state", "running")}': [
         {'name': nftables_full_service},
+        {'reload': True},
         {'enable': True},
       ]
     }
@@ -238,7 +244,7 @@ def run():
     }
 
     for include_section in nftables_pillar.get('includes', []):
-      config["nftables_early_config"] = {
+      config[f"nftables_include_{include_section}"] = {
         'file.absent': [
           {'name': _includes_path(include_section)},
           {'require_in': ["nftables_includes_dir"]},
